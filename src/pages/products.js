@@ -46,7 +46,7 @@ function display(products, element, filters) {
                     </div>
                     <footer>
                     <p class="product-name">${name}</p>
-                    <h4 class="product-price">${formatPrice(price)}</h4>
+                    <h4 class="product-price">$${price / 100}</h4>
                     </footer>
                 </article>`
     }).join('')
@@ -62,10 +62,69 @@ function display(products, element, filters) {
 }
 import { setupStore, store } from '../db.js'
 
+// search filter
+function setupSearch(store) {
+  const form = document.querySelector('.input-form');
+  const nameInput = document.querySelector('.search-input');
+  form.addEventListener('keyup', function () {
+    const value = nameInput.value;
+    if (value) {
+      const newStore = store.filter((product) => {
+        let { name } = product;
+        name = name.toLowerCase();
+        if (name.startsWith(value)) {
+          return product;
+        }
+      });
+      display(newStore, document.querySelector('.products-container'), true);
+      if (newStore.length < 1) {
+        const products = document.querySelector('.products-container');
+        products.innerHTML = `<h3 class="filter-error">
+       sorry, no products matched your search
+       </h3>`;
+      }
+    } else {
+      display(store, document.querySelector('.products-container'), true);
+    }
+  });
+};
+
+// buttons filter
+function setupCompanies(store) {
+  let companies = ['all', ...new Set(store.map((product) => product.company))];
+  const companiesDOM = document.querySelector('.companies');
+  companiesDOM.innerHTML = companies
+    .map((company) => {
+      return ` <button class="company-btn">${company}</button>`;
+    })
+    .join('');
+  companiesDOM.addEventListener('click', function (e) {
+    const element = e.target;
+    if (element.classList.contains('company-btn')) {
+      let newStore = [];
+      if (element.textContent === 'all') {
+        newStore = [...store];
+      } else {
+        newStore = store.filter(
+          (product) => product.company === e.target.textContent
+        );
+      }
+
+      display(newStore, document.querySelector('.products-container'), true);
+    }
+  });
+};
+
 async function init() {
     if(store.length < 1) {
-        const products = await fetchProducts()
-        setupStore(products)
+      const products = await fetchProducts()
+      setupStore(products)
     }
+    
     display(store, document.querySelector('.products-container'))
+
+    setupSearch(store)
+    setupCompanies(store)
 }
+
+init()
